@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.37027.9 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NewsSummarizer", "NewsSummarizer\NewsSummarizer.csproj", "{3CCF7A4D-B1E5-476B-BA2B-55CF508A0459}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3CCF7A4D-B1E5-476B-BA2B-55CF508A0459}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3CCF7A4D-B1E5-476B-BA2B-55CF508A0459}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3CCF7A4D-B1E5-476B-BA2B-55CF508A0459}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3CCF7A4D-B1E5-476B-BA2B-55CF508A0459}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {393C65F1-DB62-4886-A37C-6908E0748DD0}
+	EndGlobalSection
+EndGlobal

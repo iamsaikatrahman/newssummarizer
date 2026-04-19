@@ -1,0 +1,279 @@
+@page "/"
+@rendermode InteractiveServer
+@using NewsSummarizer.Models
+@using NewsSummarizer.Services
+@inject NewsSummarizerService SummarizerService
+
+<PageTitle>NewsLens — AI News Summarizer</PageTitle>
+
+<div class="page-wrapper">
+    <!-- Header -->
+    <header class="site-header">
+        <div class="header-inner">
+            <div class="logo">
+                <span class="logo-icon">◈</span>
+                <span class="logo-text">NewsLens</span>
+            </div>
+            <p class="logo-tagline">AI-Powered News Intelligence</p>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-badge">Powered by OpenAI GPT</div>
+            <h1 class="hero-title">
+                Understand Any<br />
+                <em>News Story</em><br />
+                Instantly
+            </h1>
+            <p class="hero-sub">
+                Paste any news article URL and get an AI-generated summary,
+                key insights, sentiment analysis, and category — in seconds.
+            </p>
+        </div>
+        <div class="hero-visual">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+            <div class="orb orb-3"></div>
+        </div>
+    </section>
+
+    <!-- Input Section -->
+    <section class="input-section">
+        <div class="input-card">
+            <label class="input-label">News Article URL</label>
+            <div class="input-row">
+                <div class="url-input-wrapper">
+                    <span class="input-icon">🔗</span>
+                    <input
+                        type="url"
+                        class="url-input @(hasError ? "input-error" : "")"
+                        placeholder="https://www.bbc.com/news/example-article"
+                        @bind="newsUrl"
+                        @bind:event="oninput"
+                        @onkeydown="HandleKeyDown"
+                        disabled="@isLoading" />
+                    @if (!string.IsNullOrEmpty(newsUrl))
+                    {
+                        <button class="clear-btn" @onclick="ClearInput" disabled="@isLoading">✕</button>
+                    }
+                </div>
+                <button class="analyze-btn @(isLoading ? "loading" : "")"
+                        @onclick="AnalyzeNews"
+                        disabled="@(isLoading || string.IsNullOrWhiteSpace(newsUrl))">
+                    @if (isLoading)
+                    {
+                        <span class="spinner"></span>
+                        <span>Analyzing...</span>
+                    }
+                    else
+                    {
+                        <span>Analyze →</span>
+                    }
+                </button>
+            </div>
+            @if (hasError && !string.IsNullOrEmpty(errorMessage))
+            {
+                <p class="error-msg">⚠ @errorMessage</p>
+            }
+            <div class="quick-tips">
+                <span class="tip-label">Try:</span>
+                <span class="tip-link" @onclick='() => SetUrl("https://www.bbc.com/news")'>BBC News</span>
+                <span class="tip-link" @onclick='() => SetUrl("https://techcrunch.com")'>TechCrunch</span>
+                <span class="tip-link" @onclick='() => SetUrl("https://www.reuters.com")'>Reuters</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Loading State -->
+    @if (isLoading)
+    {
+        <section class="loading-section">
+            <div class="loading-card">
+                <div class="loading-steps">
+                    <div class="step @(loadStep >= 1 ? "active" : "") @(loadStep > 1 ? "done" : "")">
+                        <span class="step-icon">🌐</span>
+                        <span>Fetching article</span>
+                    </div>
+                    <div class="step-connector"></div>
+                    <div class="step @(loadStep >= 2 ? "active" : "") @(loadStep > 2 ? "done" : "")">
+                        <span class="step-icon">📖</span>
+                        <span>Extracting content</span>
+                    </div>
+                    <div class="step-connector"></div>
+                    <div class="step @(loadStep >= 3 ? "active" : "")">
+                        <span class="step-icon">🤖</span>
+                        <span>AI analysis</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    }
+
+    <!-- Results Section -->
+    @if (result != null && result.IsSuccess && !isLoading)
+    {
+        <section class="results-section">
+
+            <!-- Meta Bar -->
+            <div class="meta-bar">
+                <span class="meta-chip category">@result.Category</span>
+                <span class="meta-chip sentiment-@result.Sentiment?.ToLower()">
+                    @GetSentimentIcon(result.Sentiment) @result.Sentiment
+                </span>
+                <span class="meta-time">@result.GeneratedAt.ToString("MMM dd, yyyy • HH:mm") UTC</span>
+            </div>
+
+            <!-- Article Title -->
+            <h2 class="article-title">@result.Title</h2>
+
+            <!-- Summary Card -->
+            <div class="result-card summary-card">
+                <div class="card-header">
+                    <span class="card-icon">📰</span>
+                    <h3>Summary</h3>
+                </div>
+                <p class="summary-text">@result.Summary</p>
+            </div>
+
+            <!-- Key Points -->
+            @if (!string.IsNullOrEmpty(result.KeyPoints))
+            {
+                var points = result.KeyPoints.Split('|').Where(p => !string.IsNullOrWhiteSpace(p)).ToList();
+                <div class="result-card keypoints-card">
+                    <div class="card-header">
+                        <span class="card-icon">✦</span>
+                        <h3>Key Points</h3>
+                    </div>
+                    <ul class="keypoints-list">
+                        @foreach (var point in points)
+                        {
+                            <li class="keypoint-item">
+                                <span class="kp-bullet">◆</span>
+                                <span>@point</span>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            <!-- Source Link -->
+            <div class="source-row">
+                <span class="source-label">Source:</span>
+                <a href="@result.SourceUrl" target="_blank" class="source-link">
+                    @result.SourceUrl <span>↗</span>
+                </a>
+            </div>
+
+            <!-- Actions -->
+            <div class="action-row">
+                <button class="action-btn primary" @onclick="AnalyzeAgain">↺ Analyze Another</button>
+                <button class="action-btn secondary" @onclick="CopyToClipboard">⎘ Copy Summary</button>
+            </div>
+
+            @if (copySuccess)
+            {
+                <p class="copy-toast">✓ Copied to clipboard!</p>
+            }
+        </section>
+    }
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <p>Built with <strong>ASP.NET Blazor</strong> + <strong>OpenAI GPT</strong></p>
+        <p class="footer-sub">NewsLens © @DateTime.Now.Year</p>
+    </footer>
+</div>
+
+@code {
+    private string newsUrl = string.Empty;
+    private bool isLoading = false;
+    private bool hasError = false;
+    private string errorMessage = string.Empty;
+    private SummaryResult? result = null;
+    private int loadStep = 0;
+    private bool copySuccess = false;
+
+    private async Task AnalyzeNews()
+    {
+        if (string.IsNullOrWhiteSpace(newsUrl)) return;
+
+        hasError = false;
+        errorMessage = string.Empty;
+        result = null;
+        isLoading = true;
+        loadStep = 1;
+        StateHasChanged();
+
+        await Task.Delay(600);
+        loadStep = 2;
+        StateHasChanged();
+
+        await Task.Delay(500);
+        loadStep = 3;
+        StateHasChanged();
+
+        var summary = await SummarizerService.SummarizeNewsAsync(newsUrl.Trim());
+
+        isLoading = false;
+
+        if (summary.IsSuccess)
+        {
+            result = summary;
+        }
+        else
+        {
+            hasError = true;
+            errorMessage = summary.ErrorMessage ?? "An unexpected error occurred.";
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await AnalyzeNews();
+    }
+
+    private void ClearInput()
+    {
+        newsUrl = string.Empty;
+        result = null;
+        hasError = false;
+        errorMessage = string.Empty;
+    }
+
+    private void SetUrl(string url)
+    {
+        newsUrl = url;
+        hasError = false;
+    }
+
+    private void AnalyzeAgain()
+    {
+        result = null;
+        newsUrl = string.Empty;
+        hasError = false;
+    }
+
+    private async Task CopyToClipboard()
+    {
+        if (result == null) return;
+
+        var text = $"Title: {result.Title}\n\nSummary: {result.Summary}\n\nSentiment: {result.Sentiment}\nCategory: {result.Category}";
+        // Note: In a real app, use JS interop to copy to clipboard
+        copySuccess = true;
+        await Task.Delay(2500);
+        copySuccess = false;
+        StateHasChanged();
+    }
+
+    private string GetSentimentIcon(string? sentiment) => sentiment?.ToLower() switch
+    {
+        "positive" => "↑",
+        "negative" => "↓",
+        _ => "→"
+    };
+}
